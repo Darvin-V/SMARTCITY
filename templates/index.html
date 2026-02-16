@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart City Air Quality Prediction</title>
+
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #e8f0ff, #ffffff);
+      margin: 0;
+      padding: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: #fff;
+      padding: 30px 40px;
+      border-radius: 15px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+      transition: 0.3s;
+    }
+
+    .container:hover {
+      transform: scale(1.02);
+    }
+
+    h2 {
+      text-align: center;
+      color: #007bff;
+      margin-bottom: 25px;
+    }
+
+    label {
+      font-weight: 600;
+      display: block;
+      margin-top: 10px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 15px;
+    }
+
+    button {
+      width: 100%;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 20px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #result {
+      text-align: center;
+      font-weight: bold;
+      margin-top: 20px;
+      font-size: 18px;
+      color: #333;
+    }
+
+    #error {
+      text-align: center;
+      color: red;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 13px;
+      color: #666;
+      margin-top: 25px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2>Smart City Air Quality Prediction</h2>
+
+    <div id="error"></div>
+
+    <!-- Manual numeric inputs -->
+    <label>CO(GT)</label>
+    <input type="number" id="CO" placeholder="e.g. 2.3" step="any">
+
+    <label>NOx(GT)</label>
+    <input type="number" id="NOx" placeholder="e.g. 120" step="any">
+
+    <label>PT08.S5(O3)</label>
+    <input type="number" id="O3" placeholder="e.g. 1500" step="any">
+
+    <label>Temperature (T)</label>
+    <input type="number" id="T" placeholder="e.g. 22.5" step="any">
+
+    <label>Relative Humidity (RH)</label>
+    <input type="number" id="RH" placeholder="e.g. 45.0" step="any">
+
+    <label>Absolute Humidity (AH)</label>
+    <input type="number" id="AH" placeholder="e.g. 1.0" step="any">
+
+    <button onclick="predict()">Predict Air Quality</button>
+
+    <div id="result"></div>
+
+    <footer>Developed by Team SmartCityAI • Paavai Engineering College</footer>
+  </div>
+
+  <script>
+    async function predict() {
+      const errorBox = document.getElementById("error");
+      const resultBox = document.getElementById("result");
+      errorBox.innerText = "";
+      resultBox.innerText = "";
+
+      const data = {
+        "CO(GT)": parseFloat(document.getElementById("CO").value),
+        "NOx(GT)": parseFloat(document.getElementById("NOx").value),
+        "PT08.S5(O3)": parseFloat(document.getElementById("O3").value),
+        "T": parseFloat(document.getElementById("T").value),
+        "RH": parseFloat(document.getElementById("RH").value),
+        "AH": parseFloat(document.getElementById("AH").value)
+      };
+
+      // Input validation
+      if (Object.values(data).some(v => isNaN(v))) {
+        errorBox.innerText = "⚠️ Please fill all fields with valid numbers!";
+        return;
+      }
+
+      try {
+        const res = await fetch("/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+
+        const result = await res.json();
+        if (result.status === "success") {
+          const value = result.predicted_NO2;
+          let level = "";
+          if (value < 60) level = "Good 🌿";
+          else if (value < 120) level = "Moderate 🌤️";
+          else level = "Poor 🚫";
+
+          resultBox.innerHTML = `
+            Predicted NO₂ Level: <b>${value}</b><br>
+            Air Quality: <span style="color:${
+              value < 60 ? 'green' : value < 120 ? 'orange' : 'red'
+            };">${level}</span>
+          `;
+        } else {
+          errorBox.innerText = "Server Error: " + result.message;
+        }
+      } catch (err) {
+        errorBox.innerText = "🚫 Connection failed! Make sure Flask is running.";
+      }
+    }
+  </script>
+</body>
+</html>
